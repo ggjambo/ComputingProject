@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import Profile from './Profile';
 import { AuthProvider } from '../contexts/AuthContext';
 import { auth } from '../firebase';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 jest.mock('../firebase', () => ({
   auth: {
@@ -26,7 +27,9 @@ const setup = () => {
   return render(
     <MemoryRouter>
       <AuthProvider currentUser={mockUser}>
-        <Profile />
+          <ErrorBoundary>
+              <Profile />
+          </ErrorBoundary>
       </AuthProvider>
     </MemoryRouter>
   );

@@ -1,6 +1,5 @@
 import { storage } from '../firebase';
 import axios from 'axios';
-import { updateUser } from './userUtils';
 
 jest.mock('../firebase', () => ({
   storage: {
