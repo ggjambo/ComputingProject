@@ -1,6 +1,7 @@
 //Imports for firebase and auth
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
+import 'firebase/compat/storage';
 
 //create initialize app and use auth as a function
 export const auth = firebase.initializeApp({
@@ -12,3 +13,8 @@ export const auth = firebase.initializeApp({
     appId: "1:326095191226:web:1ee10ee668753d305f9683",
     measurementId: "G-HJ3L04PHTR"
   }).auth();
+
+
+const storage = firebase.storage();
+
+export { storage };

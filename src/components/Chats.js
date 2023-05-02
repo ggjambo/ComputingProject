@@ -3,13 +3,15 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { ChatEngine } from 'react-chat-engine';
 import { auth } from '../firebase';
+import { ChatEngineWrapper } from 'react-chat-engine';
 
+import SearchBar from "./SearchBar"
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 //Chats function
 const Chats = () => {
-    
+
     //Use history for history
     const history = useHistory ();
 
@@ -19,8 +21,66 @@ const Chats = () => {
     const [loading, setLoading] = useState(true);
 
     //Log user
-    console.log(user);    
-    
+    console.log(user);   
+
+    const [chats, setChats] = useState([]);
+    const [filteredChats, setFilteredChats] = useState([]);
+    const [searchValue, setSearchValue] = useState('');
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+
+    //Block Users
+    const [blockedUsers, setBlockedUsers] = useState([]);
+
+    const blockUser = (username) => {
+        // add the username to the blockedUsers array
+        setBlockedUsers([...blockedUsers, username]);
+      
+        // block the user in Chat Engine
+        ChatEngine.global.blockUser(username);
+      };
+
+    const isBlocked = (username) => {
+        return blockedUsers.includes(username);
+    };
+
+
+    const handleSearch2 = async () => {
+        // Call the Chat Engine API to search for users
+        const response = await ChatEngine.global.searchUsers(searchQuery);
+      
+        // Update the search results state with the response
+        setSearchResults(response.results);
+      };
+      
+
+    useEffect(() => {
+    // Fetch chats from ChatEngine API
+        const fetchChats = async () => {
+            const response = await axios.get('https://api.chatengine.io/chats', {
+                headers: {
+                    "project-id": process.env.REACT_APP_PROJECT_ID,
+                    "user-name": user.email,
+                    "user-secret": user.uid,
+        },
+    });
+
+        setChats(response.data);
+        setFilteredChats(response.data);
+    };
+
+        fetchChats();
+     }, []);
+
+    const handleSearch = (value) => {
+        setSearchValue(value);
+        const filtered = chats.filter((chat) =>
+        chat.title.toLowerCase().includes(value.toLowerCase())
+    );
+        setFilteredChats(filtered);
+    };
+
     //Handle Logout
     const handleLogout = async () => {
             await auth.signOut();
@@ -29,7 +89,13 @@ const Chats = () => {
 
     }
 
-//Get user profile image
+    //Handle feed change
+    const routeChange = () =>{ 
+        let path = `newPath`;
+        history.push('feed');
+    }
+
+    //Get user profile image
     const getFile = async (url) => {
         const response = await fetch(url);
         const data = await response.blob();
@@ -37,7 +103,7 @@ const Chats = () => {
         return new File([data], "userPhoto.jpg", { type: 'image/jpg' })
     }
 
-//If there is no user then redirect to login
+    //If there is no user then redirect to login
     useEffect(() => {
         if(!user) {
             history.push('/');
@@ -45,11 +111,11 @@ const Chats = () => {
             return;
         }
 
-//Axios call to get account if already created
-//If not, create account
+    //Axios call to get account if already created
+    //If not, create account
         axios.get('https://api.chatengine.io/users/me' , {
             headers: {
-                "project-id": "e03b386a-7be9-4029-8f19-429c9d5ab227",
+                "project-id": process.env.REACT_APP_PROJECT_ID,
                 "user-name": user.email,
                 "user-secret": user.uid,
             }
@@ -67,9 +133,9 @@ const Chats = () => {
                     .then((avatar) => {
                         formdata.append('avatar', avatar, avatar.name)
 
-                        axios.post('https://api.chatengine.io/users',
+                        axios.post('https://api.chatengine.io/users/',
                             formdata,
-                            { headers: { "private-key": "b03b9679-7dea-476a-a59c-92e267e6bd72"} }
+                            { headers: { "private-key": process.env.REACT_APP_PROJECT_KEY } }
                         )
                         .then(() => setLoading(false))
                         .catch((error) => console.log(error))
@@ -87,19 +153,66 @@ const Chats = () => {
                 <div className="logo-tab">
                     ShadeStack    
                 </div>
+                <div onClick={routeChange} className="feed-tab">
+                    Feed
+                </div>
+                <div onClick={() => history.push('/profile')} className="profilepage-tab">
+                    Profile
+                </div>
                 <div onClick={handleLogout} className="logout-tab">
                     Logout
                 </div>
             </div>
-
+            <div>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                />
+                <button onClick={handleSearch}>Search For User</button>
+            </div>   
+            <div>
+                {searchResults.map((result) => (
+                    <div key={result.username}>
+                    <p>{result.username}</p>
+                    </div>
+                ))}
+            </div>     
+            <div>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                />
+                <button onClick={handleSearch}>Search User To Block</button>
+            </div>
+            <div>
+                {searchResults.map((result) => (
+                    <div key={result.username}>
+                    <p>{result.username}</p>
+                    <button onClick={() => blockUser(result.username)}>Block User</button>
+                    </div>
+                ))}
+            </div>
+            <div className="App">
+            <SearchBar onSearch={handleSearch} />
             <ChatEngine
-            height="calc(100vh - 66px)"
-            projectID="e03b386a-7be9-4029-8f19-429c9d5ab227"
-            userName={user.email}
-            userSecret={user.uid}
+                height="calc(100vh - 66px)"
+                projectID={process.env.REACT_APP_PROJECT_ID}
+                userName={user.email}
+                userSecret={user.uid}
+                chats={filteredChats}
+                isBlocked={isBlocked}
             />
+            </div>
         </div>
     );
 }
+
+/*
+<button onClick={() => blockUser('username_to_block')}>
+             Block User
+            </button>
+*/
 
 export default Chats;

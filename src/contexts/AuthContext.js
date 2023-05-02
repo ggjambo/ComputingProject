@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
         const [user, setUser] = useState (null);
         const history = useHistory();
 
+        //Whenever the state of auth changed call user data
         useEffect(() => {
             auth.onAuthStateChanged((user) => {
                     setUser(user);
